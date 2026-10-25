@@ -148,6 +148,37 @@
     return legs;
   }
 
-  return { parseCoord: parseCoord, splitLines: splitLines, cleanAddress: cleanAddress, pathCost: pathCost,
+  // ---- Photon (autocomplete) helpers ----
+  var PHOTON = 'https://photon.komoot.io/api/';
+  function photonUrl(q, limit) {
+    return PHOTON + '?q=' + encodeURIComponent(q) + '&limit=' + (limit || 5) +
+      '&lat=43.59&lon=-79.64&location_bias_scale=0.3&bbox=-95.2,41.6,-74.3,56.9&lang=en';
+  }
+  // Format a Photon GeoJSON feature as {label: 'house number street, city', sub, lat, lng}
+  function formatPhoton(f) {
+    if (!f || !f.geometry || !f.properties) return null;
+    var p = f.properties, c = f.geometry.coordinates;
+    var city = p.city || p.town || p.village || p.district || p.locality || p.county || '';
+    var street = p.street ? ((p.housenumber ? p.housenumber + ' ' : '') + p.street) : '';
+    var label, sub;
+    if (p.housenumber && p.street) { label = street; sub = p.name && p.name !== street && p.type !== 'house' ? p.name : ''; }
+    else if (p.name) { label = p.name; sub = street; }
+    else if (street) { label = street; sub = ''; }
+    else return null;
+    if (city && label.indexOf(city) === -1) label += ', ' + city;
+    var extra = [p.state, p.postcode].filter(Boolean).join(' ');
+    sub = [sub, extra].filter(Boolean).join(' · ');
+    return { label: label, sub: sub, lat: +c[1], lng: +c[0] };
+  }
+  function parsePhoton(json) {
+    var seen = {}, out = [];
+    ((json && json.features) || []).forEach(function (f) {
+      var r = formatPhoton(f); if (!r) return;
+      var k = r.label.toLowerCase(); if (seen[k]) return; seen[k] = 1; out.push(r);
+    });
+    return out;
+  }
+
+  return { photonUrl: photonUrl, formatPhoton: formatPhoton, parsePhoton: parsePhoton, parseCoord: parseCoord, splitLines: splitLines, cleanAddress: cleanAddress, pathCost: pathCost,
            solve: solve, heldKarp: heldKarp, heuristic: heuristic, buildMapsUrls: buildMapsUrls, fmtLL: fmtLL };
 });

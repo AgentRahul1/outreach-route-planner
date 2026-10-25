@@ -1,5 +1,5 @@
 // Caches only the app's own files. Address lookups and routing requests always go to the network and are never cached here.
-var CACHE = 'orp-v1.2.0';
+var CACHE = 'orp-v1.3.0';
 var SHELL = ['./', 'index.html', 'style.css', 'lib.js', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); })); });
 self.addEventListener('activate', function (e) {

@@ -1,7 +1,7 @@
 /* Outreach Route Planner — UI + network. All data stays in localStorage on this device. */
 (function () {
   'use strict';
-  var VERSION = '1.2.0';
+  var VERSION = '1.3.0';
   var L = window.RouteLib;
   var KEY = 'orp.state.v1', GEOKEY = 'orp.geocache.v1';
   var NOMINATIM = 'https://nominatim.openstreetmap.org/search';
@@ -18,6 +18,7 @@
   var S = load(KEY, defaults);
   S.settings = Object.assign({}, defaults.settings, S.settings || {});
   var geoCache = load(GEOKEY, {});
+  var savedPick = null;
   // One-time setup link: #home=<address>&name=<label>. The # part never leaves the phone (not sent to the server).
   (function setupFromHash() {
     if (!location.hash || location.hash.length < 2) return;
@@ -82,6 +83,73 @@
     }
     return { error: 'Address not found' };
   }
+
+  // ---------- Address suggestions as you type (Photon) ----------
+  var acCache = {};
+  function attachAutocomplete(el, onPick, opts) {
+    opts = opts || {};
+    var wrap = el.parentNode, list = document.createElement('ul'), timer = null, ctrl = null, items = [], active = -1, seq = 0;
+    list.className = 'ac-list hidden'; list.setAttribute('role', 'listbox'); wrap.appendChild(list);
+    el.setAttribute('aria-autocomplete', 'list');
+    function query() { // for textareas, use the line at the caret
+      if (el.tagName !== 'TEXTAREA') return el.value.trim();
+      var v = el.value, pos = el.selectionStart == null ? v.length : el.selectionStart;
+      var a = v.lastIndexOf('\n', pos - 1) + 1, b = v.indexOf('\n', pos); if (b < 0) b = v.length;
+      return v.slice(a, b).trim();
+    }
+    function hide() { list.classList.add('hidden'); list.innerHTML = ''; items = []; active = -1; }
+    function render(res, note) {
+      list.innerHTML = ''; items = res; active = -1;
+      res.forEach(function (r, i) {
+        var li = document.createElement('li'); li.setAttribute('role', 'option');
+        li.innerHTML = '<div>' + esc(r.label) + '</div>' + (r.sub ? '<div class="s">' + esc(r.sub) + '</div>' : '');
+        li.addEventListener('pointerdown', function (e) { e.preventDefault(); }); // keep focus so blur doesn't close first
+        li.addEventListener('click', function () { choose(i); });
+        list.appendChild(li);
+      });
+      if (note) { var n = document.createElement('li'); n.className = 'note'; n.textContent = note; list.appendChild(n); }
+      list.classList.toggle('hidden', !res.length && !note);
+    }
+    function choose(i) {
+      var r = items[i]; if (!r) return; hide();
+      onPick(r, el);
+    }
+    function run() {
+      var q = query();
+      if (q.length < 3 || L.parseCoord(q)) { hide(); return; }
+      var key = q.toLowerCase();
+      if (acCache[key]) { render(acCache[key], acCache[key].length ? '' : 'No suggestions. You can still type the full address.'); return; }
+      if (ctrl) ctrl.abort();
+      ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var my = ++seq;
+      fetch(L.photonUrl(q, 5), ctrl ? { signal: ctrl.signal } : {})
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (j) {
+          var res = L.parsePhoton(j); acCache[key] = res;
+          if (my === seq && document.activeElement === el) render(res, res.length ? '' : 'No suggestions. You can still type the full address.');
+        })
+        .catch(function (e) { if (e.name !== 'AbortError' && my === seq) render([], 'Suggestions unavailable right now. Type the full address.'); });
+    }
+    el.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(run, 300); });
+    el.addEventListener('focus', function () { setTimeout(function () { try { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) {} }, 300); });
+    el.addEventListener('blur', function () { setTimeout(hide, 150); });
+    el.addEventListener('keydown', function (e) {
+      if (list.classList.contains('hidden')) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); hide(); }
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault(); if (!items.length) return;
+        active = (active + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+        Array.prototype.forEach.call(list.children, function (li, i) { li.classList.toggle('act', i === active); });
+      } else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); choose(active); }
+    });
+  }
+  // Replace the caret's line in a textarea with nothing (used after a stop suggestion is added)
+  function removeCaretLine(el) {
+    var v = el.value, pos = el.selectionStart == null ? v.length : el.selectionStart;
+    var a = v.lastIndexOf('\n', pos - 1) + 1, b = v.indexOf('\n', pos); if (b < 0) b = v.length; else b += 1;
+    el.value = (v.slice(0, a) + v.slice(b)).replace(/\n+$/, '');
+  }
+  function picked(r) { return { lat: r.lat, lng: r.lng, label: r.label + (r.sub ? ' · ' + r.sub : ''), confirmed: true, ambiguous: false }; }
 
   // ---------- Stops ----------
   function addStops(lines) {
@@ -183,6 +251,7 @@
     if (S.originMode === 'typed') {
       var t = $('originInput').value.trim(); if (!t) throw new Error('Type a start address.');
       S.originText = t; save();
+      if (S.originPick && S.originPick.text === t) return { lat: S.originPick.lat, lng: S.originPick.lng, label: S.originPick.label, short: t };
       var g = await geocode(t); if (g.error) throw new Error('Start address not found: ' + t);
       return { lat: g.lat, lng: g.lng, label: g.label, short: t };
     }
@@ -226,7 +295,7 @@
       if (S.endMode === 'addr') {
         var et = $('endInput').value.trim(); if (!et) throw new Error('Type an end address, or pick another end option.');
         S.endText = et; save(); status('Finding your end point…');
-        var ge = await geocode(et); if (ge.error) throw new Error('End address not found: ' + et);
+        var ge = (S.endPick && S.endPick.text === et) ? S.endPick : await geocode(et); if (ge.error) throw new Error('End address not found: ' + et);
         end = { lat: ge.lat, lng: ge.lng, label: ge.label, short: et };
       }
       var amb = S.stops.filter(function (x) { return x.ambiguous && !x.confirmed; });
@@ -302,9 +371,24 @@
     $('btnClearStops').addEventListener('click', function () { if (confirm('Remove all stops?')) { S.stops = []; S.last = null; save(); renderStops(); renderResult(); } });
     $('btnSaveOrigin').addEventListener('click', function () {
       var t = $('originInput').value.trim(); if (!t) return; var name = prompt('Name for this start (e.g. Office)'); if (!name) return;
-      S.saved.push({ name: name.trim(), text: t }); save(); renderSaved();
+      var op = S.originPick && S.originPick.text === t ? S.originPick : null;
+      S.saved.push(op ? { name: name.trim(), text: t, lat: op.lat, lng: op.lng, label: op.label } : { name: name.trim(), text: t }); save(); renderSaved();
     });
     $('btnPlan').addEventListener('click', plan);
+    attachAutocomplete($('originInput'), function (r, el) {
+      el.value = r.label; S.originText = r.label; S.originPick = Object.assign({ text: r.label }, picked(r)); save();
+    });
+    attachAutocomplete($('endInput'), function (r, el) {
+      el.value = r.label; S.endText = r.label; S.endPick = Object.assign({ text: r.label }, picked(r)); save();
+    });
+    attachAutocomplete($('newSavedAddr'), function (r, el) {
+      el.value = r.label; savedPick = Object.assign({ text: r.label }, picked(r));
+    });
+    attachAutocomplete($('stopsInput'), function (r, el) {
+      removeCaretLine(el);
+      S.stops.push(Object.assign({ id: uid(), text: r.label }, picked(r))); save(); renderStops();
+      status('Added: ' + r.label, 'ok'); el.focus();
+    });
     $('btnSettings').addEventListener('click', function () {
       $('maxWp').value = String(S.settings.maxWp); $('osrmUrl').value = S.settings.osrm; $('contactEmail').value = S.settings.email || '';
       $('settingsDlg').showModal();
@@ -315,7 +399,8 @@
     });
     $('btnAddSaved').addEventListener('click', function () {
       var n = $('newSavedName').value.trim(), t = $('newSavedAddr').value.trim(); if (!n || !t) return;
-      S.saved.push({ name: n, text: t }); $('newSavedName').value = ''; $('newSavedAddr').value = ''; save(); renderSaved();
+      var sp = savedPick && savedPick.text === t ? savedPick : null;
+      S.saved.push(sp ? { name: n, text: t, lat: sp.lat, lng: sp.lng, label: sp.label } : { name: n, text: t }); savedPick = null; $('newSavedName').value = ''; $('newSavedAddr').value = ''; save(); renderSaved();
     });
     $('btnClearCache').addEventListener('click', function () { geoCache = {}; saveGeo(); alert('Saved lookups cleared.'); });
     $('btnWipe').addEventListener('click', function () {

@@ -38,3 +38,13 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 dialog label{display:block;margin:14px 0 6px;font-weight:600;font-size:15px}
 .row{display:flex;gap:8px}.row>*{flex:1}
 .opts button{display:block;width:100%;text-align:left;min-height:54px;margin:6px 0;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--t);font-size:15px}
+
+.ac{position:relative}
+.ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;list-style:none;margin:0;padding:4px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:45vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.ac-list li{padding:12px 14px;min-height:52px;cursor:pointer;border-top:1px solid var(--line);font-size:16px;-webkit-tap-highlight-color:transparent}
+.ac-list li:first-child{border-top:0}
+.ac-list li.act,.ac-list li:active{background:var(--bg)}
+.ac-list .s{font-size:13px;color:var(--m);margin-top:2px}
+.ac-list .note{font-size:13px;color:var(--m);cursor:default;min-height:0;padding:8px 14px}
+input,textarea{scroll-margin-top:80px}
+dialog input{font-size:17px}
