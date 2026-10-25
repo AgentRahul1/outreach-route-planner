@@ -1,7 +1,7 @@
 /* Outreach Route Planner — UI + network. All data stays in localStorage on this device. */
 (function () {
   'use strict';
-  var VERSION = '1.1.0';
+  var VERSION = '1.2.0';
   var L = window.RouteLib;
   var KEY = 'orp.state.v1', GEOKEY = 'orp.geocache.v1';
   var NOMINATIM = 'https://nominatim.openstreetmap.org/search';
@@ -11,7 +11,7 @@
     stops: [],
     saved: [],
     savedIdx: 0, originMode: 'saved', originText: '', gps: null,
-    endMode: 'return', endText: '',
+    endMode: 'last', endText: '',
     settings: { maxWp: 9, osrm: 'https://router.project-osrm.org', email: '' },
     last: null
   };
