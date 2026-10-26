@@ -30,7 +30,7 @@
     return String(a)
       .replace(/\b(?:unit|suite|ste|apt|apartment|room|rm|floor|fl)\.?\s*#?\s*[\w-]+\s*,?/gi, '')
       .replace(/#\s*[\w-]+\s*,?/g, '')
-      .replace(/^\s*\d+[A-Za-z]?\s*-\s*(?=\d)/, '') // "102-1540 Cornwall Rd" -> "1540 Cornwall Rd"
+      .replace(/^\s*\d+[A-Za-z]?\s*-\s*(?=\d)/, '') // "12A-100 Example Rd" -> "100 Example Rd"
       .replace(/\s{2,}/g, ' ').replace(/\s+,/g, ',').replace(/^[\s,]+|[\s,]+$/g, '');
   }
 
