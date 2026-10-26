@@ -2,85 +2,30 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="referrer" content="origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://photon.komoot.io https://nominatim.openstreetmap.org https://router.project-osrm.org https://*; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; manifest-src 'self'; worker-src 'self'">
-<title>Outreach Route Planner</title>
-<meta name="description" content="Plan the shortest order for your stops and open it in Google Maps.">
-<meta name="theme-color" content="#0f4c81">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Outreach Route Planner">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>Unavailable</title>
+<style>
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f2f4f7;
+    color: #1c2430;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  main { max-width: 28rem; padding: 2rem; text-align: center; }
+  h1 { font-size: 1.25rem; font-weight: 600; line-height: 1.4; margin: 0; }
+</style>
 </head>
 <body>
-<header class="top"><h1>Outreach Route Planner</h1><button id="btnSettings" class="icon" aria-label="Settings">⚙︎</button></header>
 <main>
-  <section class="card">
-    <h2>Start</h2>
-    <div class="seg" id="originMode" role="tablist">
-      <button data-v="saved" class="on">Saved</button><button data-v="gps">My location</button><button data-v="typed">Type address</button>
-    </div>
-    <div id="originSaved" class="pane"><select id="savedSelect" class="big"></select></div>
-    <div id="originGps" class="pane hidden"><button id="btnGps" class="btn secondary">📍 Use current location</button><div id="gpsStatus" class="muted"></div></div>
-    <div id="originTyped" class="pane hidden"><div class="ac"><input id="originInput" class="big" placeholder="Start address" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></div>
-      <button id="btnSaveOrigin" class="link">☆ Save this start</button></div>
-  </section>
-
-  <section class="card">
-    <h2>Stops <span id="stopCount" class="pill">0</span></h2>
-    <div class="ac"><textarea id="stopsInput" rows="3" placeholder="Start typing an address and tap a suggestion, or paste several (one per line)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea></div>
-    <button id="btnAddStops" class="btn secondary">+ Add stops</button>
-    <ul id="stopList" class="list"></ul>
-    <button id="btnClearStops" class="link danger hidden">Clear all stops</button>
-  </section>
-
-  <section class="card">
-    <h2>End</h2>
-    <div class="seg" id="endMode">
-      <button data-v="last" class="on">End at last stop</button><button data-v="return">Round trip</button><button data-v="addr">Other address</button>
-    </div>
-    <div id="endAddrPane" class="pane hidden"><div class="ac"><input id="endInput" class="big" placeholder="End address or lat,lng" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></div></div>
-  </section>
-
-  <button id="btnPlan" class="btn primary">Plan route</button>
-  <div id="status" class="status" role="status" aria-live="polite"></div>
-
-  <section id="results" class="card hidden">
-    <h2>Your route</h2>
-    <div id="totals" class="totals"></div>
-    <ol id="legList" class="legs"></ol>
-    <div id="mapsBtns"></div>
-  </section>
-  <p class="muted small center">Addresses stay on this phone only. Map data © OpenStreetMap contributors · Suggestions by Photon · Routing by OSRM.</p>
+  <h1>This tool is no longer available</h1>
 </main>
-
-<dialog id="pickDlg"><form method="dialog">
-  <h3>Which one did you mean?</h3><p id="pickQuery" class="muted"></p>
-  <div id="pickOpts" class="opts"></div>
-  <div class="row"><button value="cancel" class="btn secondary">Cancel</button></div>
-</form></dialog>
-
-<dialog id="settingsDlg"><form method="dialog">
-  <h3>Settings</h3>
-  <label>Saved starts</label><ul id="savedList" class="list compact"></ul>
-  <input id="newSavedName" placeholder="Name (e.g. Office)"><div class="ac" style="margin-top:8px"><input id="newSavedAddr" placeholder="Address or lat,lng" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
-  <button id="btnAddSaved" type="button" class="btn secondary">+ Add saved start</button>
-  <label for="maxWp">Stops per Google Maps link</label>
-  <select id="maxWp" class="big"><option value="9">9 (Google Maps app — recommended)</option><option value="3">3 (if links open in Safari instead)</option></select>
-  <label for="osrmUrl">Routing server (OSRM)</label><input id="osrmUrl" class="big">
-  <label for="contactEmail">Your email for Nominatim (optional, recommended by their policy)</label><input id="contactEmail" class="big" type="email" placeholder="optional">
-  <button id="btnClearCache" type="button" class="btn secondary">Clear saved address lookups</button>
-  <button id="btnWipe" type="button" class="btn danger">Erase everything on this phone</button>
-  <div class="row"><button value="close" class="btn primary">Done</button></div>
-  <p class="muted small">Version <span id="ver"></span></p>
-</form></dialog>
-
-<script src="lib.js"></script>
-<script src="app.js"></script>
+<script src="/outreach-route-planner/retire.js"></script>
 </body>
 </html>
