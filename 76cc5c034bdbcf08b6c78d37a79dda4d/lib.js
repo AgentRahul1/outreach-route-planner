@@ -148,6 +148,27 @@
     return legs;
   }
 
+  /*
+   * Build an Apple Maps directions URL for an ordered list of points [{lat,lng}].
+   * Apple Maps accepts multiple destinations chained with " to: " in daddr.
+   */
+  function buildAppleMapsUrl(points) {
+    if (!points || points.length < 2) return '';
+    var dests = points.slice(1).map(fmtLL);
+    return 'https://maps.apple.com/?saddr=' + encodeURIComponent(fmtLL(points[0])) +
+      '&daddr=' + encodeURIComponent(dests.join(' to: ')) + '&dirflg=d';
+  }
+
+  // Format a duration in seconds as "12 min" / "1 h 5 min".
+  function fmtDur(sec) {
+    if (sec == null || !isFinite(sec)) return '';
+    var m = Math.round(sec / 60);
+    if (m < 1) return '<1 min';
+    if (m < 60) return m + ' min';
+    var h = Math.floor(m / 60), r = m % 60;
+    return r ? h + ' h ' + r + ' min' : h + ' h';
+  }
+
   // ---- Photon (autocomplete) helpers ----
   var PHOTON = 'https://photon.komoot.io/api/';
   function photonUrl(q, limit) {
@@ -168,7 +189,10 @@
     if (city && label.indexOf(city) === -1) label += ', ' + city;
     var extra = [p.state, p.postcode].filter(Boolean).join(' ');
     sub = [sub, extra].filter(Boolean).join(' · ');
-    return { label: label, sub: sub, lat: +c[1], lng: +c[0] };
+    // Preserve the place name (e.g. "Port Credit GO Station") separately from its street address,
+    // so the UI can show the name the user actually recognises.
+    var placeName = (p.name && p.name !== street && label.indexOf(p.name) === -1) ? p.name : '';
+    return { label: label, sub: sub, name: placeName, lat: +c[1], lng: +c[0] };
   }
   function parsePhoton(json) {
     var seen = {}, out = [];
@@ -180,5 +204,5 @@
   }
 
   return { photonUrl: photonUrl, formatPhoton: formatPhoton, parsePhoton: parsePhoton, parseCoord: parseCoord, splitLines: splitLines, cleanAddress: cleanAddress, pathCost: pathCost,
-           solve: solve, heldKarp: heldKarp, heuristic: heuristic, buildMapsUrls: buildMapsUrls, fmtLL: fmtLL };
+           solve: solve, heldKarp: heldKarp, heuristic: heuristic, buildMapsUrls: buildMapsUrls, buildAppleMapsUrl: buildAppleMapsUrl, fmtDur: fmtDur, fmtLL: fmtLL };
 });

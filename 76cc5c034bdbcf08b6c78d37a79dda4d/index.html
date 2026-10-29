@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://photon.komoot.io https://nominatim.openstreetmap.org https://router.project-osrm.org https://*; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; manifest-src 'self'; worker-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://photon.komoot.io https://nominatim.openstreetmap.org https://router.project-osrm.org https://*; img-src 'self' data: https://*.tile.openstreetmap.org; style-src 'self' 'unsafe-inline' https://unpkg.com; script-src 'self' https://unpkg.com; manifest-src 'self'; worker-src 'self'">
 <title>Outreach Route Planner</title>
 <meta name="description" content="Plan the shortest order for your stops and open it in Google Maps.">
 <meta name="theme-color" content="#0f4c81">
@@ -15,6 +15,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -52,12 +53,43 @@
 
   <section id="results" class="card hidden">
     <h2>Your route</h2>
+    <div id="staleBanner" class="stale hidden">⚠ This route is outdated — your stops or start/end changed, or the last plan did not finish. Tap Plan route again.</div>
     <div id="totals" class="totals"></div>
+    <div id="map" class="map hidden"></div>
+    <p class="muted small">Use ↑ ↓ on a stop to override the order — distance and time update right away.</p>
     <ol id="legList" class="legs"></ol>
     <div id="mapsBtns"></div>
+    <div class="row">
+      <button id="btnCopyRoute" type="button" class="btn secondary">Copy route</button>
+      <button id="btnShareRoute" type="button" class="btn secondary">Share route</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="saveRouteName" placeholder="Name this route (e.g. Tuesday west run)">
+      <button id="btnSaveRoute" type="button" class="btn secondary" style="margin-top:0">Save route</button>
+    </div>
+  </section>
+
+  <section id="routesCard" class="card hidden">
+    <h2>Saved routes</h2>
+    <ul id="savedRoutesList" class="list"></ul>
+    <h2 style="margin-top:14px">Recent routes</h2>
+    <ul id="historyList" class="list"></ul>
   </section>
   <p class="muted small center">Addresses stay on this phone only. Map data © OpenStreetMap contributors · Suggestions by Photon · Routing by OSRM.</p>
 </main>
+
+<dialog id="editDlg"><form method="dialog">
+  <h3>Edit stop</h3>
+  <div class="ac"><input id="editInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+  <div class="row"><button value="cancel" class="btn secondary">Cancel</button><button id="btnEditSave" type="button" class="btn primary">Save</button></div>
+</form></dialog>
+
+<dialog id="saveStartDlg"><form method="dialog">
+  <h3>Save this start</h3>
+  <p id="saveStartAddr" class="muted"></p>
+  <input id="saveStartName" placeholder="Name (e.g. Office, Home)">
+  <div class="row"><button value="cancel" class="btn secondary">Cancel</button><button id="btnSaveStartConfirm" type="button" class="btn primary">Save start</button></div>
+</form></dialog>
 
 <dialog id="pickDlg"><form method="dialog">
   <h3>Which one did you mean?</h3><p id="pickQuery" class="muted"></p>
@@ -80,6 +112,7 @@
   <p class="muted small">Version <span id="ver"></span></p>
 </form></dialog>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="lib.js"></script>
 <script src="app.js"></script>
 </body>
